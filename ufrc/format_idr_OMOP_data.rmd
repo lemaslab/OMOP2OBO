@@ -1,0 +1,45 @@
+---
+title: "format IDR data for omop2obo"
+author: "Dominick J. Lemas"
+date: "2023-05-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+library(dplyr)
+
+idr_condition <- read_csv("~/OMOP2OBO/tests/data/clinical_data/idr_condition_occurrence_head.csv")
+
+``
+
+```{r cars}
+
+idr_final = idr_condition %>%
+  rename(CONCEPT_ID = condition_concept_id,
+         CONCEPT_SOURCE_CODE = condition_type_concept_id,
+         # CONCEPT_LABEL =
+         # CONCEPT_SOURCE_LABEL
+         # CONCEPT_VOCAB
+         # CONCEPT_VOCAB_VERSION
+         # CONCEPT_SYNONYM
+         # ANCESTOR_CONCEPT_ID
+         # ANCESTOR_SOURCE_CODE
+         # ANCESTOR_LABEL
+         # ANCESTOR_VOCAB
+         # ANCESTOR_VOCAB_VERSION
+         )
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
