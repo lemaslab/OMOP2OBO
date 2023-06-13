@@ -11,7 +11,20 @@ knitr::opts_chunk$set(echo = TRUE)
 library(readr)
 library(dplyr)
 
-idr_condition <- read_csv("~/OMOP2OBO/tests/data/clinical_data/idr_condition_occurrence_head.csv")
+# input files 
+# UFRC
+# /blue/djlemas/share/data/Benchmark/OMOP/data_release/v2.1/clinical_data/
+
+# shardrive
+# V:\FACULTY\DJLEMAS\EHR_Data\processed\OMOP
+
+# PC
+data_path="V:/FACULTY/DJLEMAS/EHR_Data/processed/OMOP/"
+data_file="condition_occurrence_head.csv"
+data_file_path=paste0(data_path,data_file)
+
+# Import Files
+idr_condition <- read_csv(data_file_path, show_col_types = FALSE)
 
 ``
 
