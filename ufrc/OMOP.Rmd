@@ -2,6 +2,7 @@
 
 library(readr)
 library(tidyverse)
+library(stringr)
 
 #Read in data as separate data frames
 
@@ -38,15 +39,25 @@ concept_vocab_filter=concept_vocab_merged %>%
 
 ```{r}
 
-#Create new columns
-merge_concept_filter_new <- merge_concept_filter
-temp_replace <- paste(tolower(merge_concept_filter_new$vocabulary_id),tolower(merge_concept_filter_new$concept_code),sep = ":")
-merge_concept_filter_new$CONCEPT_SOURCE_CODE <- paste(merge_concept_filter_new$concept_id,temp_replace,sep = "|")
-merge_concept_filter_new$CONCEPT_SOURCE_LABEL <- paste(merge_concept_filter_new$concept_id,merge_concept_filter_new$concept_name,sep="|")
-merge_concept_filter_new$CONCEPT_VOCAB <- paste(merge_concept_filter_new$concept_id,merge_concept_filter_new$vocabulary_id,sep="|")
-merge_concept_filter_new$CONCEPT_VOCAB_VERSION <- paste(merge_concept_filter_new$concept_id,merge_concept_filter_new$vocabulary_version,sep="|")
 
-colnames(merge_concept_filter_new)[1,2,6] <- c("CONCEPT_ID", "CONCEPT_LABEL", "STANDARD_CONCEPT")
+
+#Create new columns
+
+concept_vocab_filter_new=concept_vocab_filter %>%
+  mutate(tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
+  rename(tmp_vocab_id="tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id), \":\", tolower(concept_code))") %>%
+  group_by(concept_id) %>%
+  mutate(CONCEPT_SOURCE_CODE = str_c(tmp_vocab_id, collapse = "|")) %>%
+  mutate(CONCEPT_SOURCE_LABEL = str_c(concept_name, collapse = "|")) %>%
+  mutate(CONCEPT_VOCAB = str_c(tolower(vocabulary_id), collapse = "|")) %>%
+  mutate(CONCEPT_VOCAB_VERSION = str_c(tolower(vocabulary_version), collapse = "|")) %>%
+  rename(STANDARD_CONCEPT=standard_concept,
+         CONCEPT_ID=concept_id,
+         CONCEPT_LABEL=concept_name) %>%
+  select(CONCEPT_ID,CONCEPT_SOURCE_CODE,CONCEPT_LABEL,CONCEPT_SOURCE_LABEL,CONCEPT_VOCAB,CONCEPT_VOCAB_VERSION)
+
+
+
 
 ```
 
