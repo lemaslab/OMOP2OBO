@@ -4,6 +4,8 @@ library(readr)
 library(tidyverse)
 library(stringr)
 
+# notes: https://ohdsi.github.io/CommonDataModel/cdm60.html#VOCABULARY
+
 #Read in data as separate data frames
 
 concept <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_v2.0.txt", show_col_types = FALSE) 
