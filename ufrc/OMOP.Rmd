@@ -6,8 +6,7 @@ library(tidyverse)
 #Read in data as separate data frames
 
 concept <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_v2.0.txt", show_col_types = FALSE) 
-vocabulary <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/vocabulary_v2.0.txt", show_col_types = FALSE) %>%
-  rename(concept_id=vocabulary_concept_id)
+vocabulary <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/vocabulary_v2.0.txt", show_col_types = FALSE) 
 concept_ancestor <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE)
 concept_synonym <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE) 
                            
@@ -36,7 +35,7 @@ table(vocabulary$vocabulary_id)
 
 # Merge the Concept table with the Vocabulary table:  Primary key: concept_id 
                              
-concept_vocab_merged=full_join(concept,vocabulary,by='concept_id')
+concept_vocab_merged=full_join(concept,vocabulary,by='vocabulary_id')
 
 
 ```
@@ -44,21 +43,15 @@ concept_vocab_merged=full_join(concept,vocabulary,by='concept_id')
 
 ```{r}
 
+# filter data
+
 concept_vocab_filter=concept_vocab_merged %>%
   filter(concept_name != "No matching concept") %>%
   filter(domain_id == "Condition") %>%
   filter(standard_concept == "S") %>%
-  filter(voacbulary_id.x == "SNOMED")
-
-unique(concept_vocab_filter$vocabulary_id.x)
-unique(concept_vocab_filter$vocabulary_id.y)
+  filter(vocabulary_id == "SNOMED")
 
 
-#Filter merged data
-merge_concept_filter <- merge_concept[merge_concept$concept_name != "No matching concept",]
-merge_concept_filter <- merge_concept_filter[merge_concept_filter$domain_id == "Condition",]
-merge_concept_filter <- merge_concept_filter[merge_concept_filter$standard_concept == "S",]
-merge_concept_filter <- merge_concept_filter[merge_concept_filter$voacbulary_id == "SNOMED",]
 
 ```
 
