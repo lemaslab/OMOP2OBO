@@ -13,25 +13,8 @@ concept_synonym <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/can
 
 ```
 
-```{r}
-
-# explore the data
-
-# concept file
-concept$vocabulary_id=as.factor(concept$vocabulary_id)
-str(concept)
-table(concept$vocabulary_id)
-
-# vocabulary file
-vocabulary$vocabulary_id=as.factor(vocabulary$vocabulary_id)
-str(vocabulary)
-table(vocabulary$vocabulary_id)
-
-```
-
 
 ```{r}
-
 
 # Merge the Concept table with the Vocabulary table:  Primary key: concept_id 
                              
@@ -50,8 +33,6 @@ concept_vocab_filter=concept_vocab_merged %>%
   filter(domain_id == "Condition") %>%
   filter(standard_concept == "S") %>%
   filter(vocabulary_id == "SNOMED")
-
-
 
 ```
 
