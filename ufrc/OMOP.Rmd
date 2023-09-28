@@ -9,6 +9,9 @@ library(stringr)
 #Read in data as separate data frames
 
 concept <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_v2.0.txt", show_col_types = FALSE) 
+
+# concept <- read_csv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_test.csv", show_col_types = FALSE) 
+
 vocabulary <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/vocabulary_v2.0.txt", show_col_types = FALSE) 
 concept_ancestor <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE)
 concept_synonym <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE) 
@@ -41,105 +44,23 @@ concept_vocab_filter=concept_vocab_merged %>%
 
 ```{r}
 
-
-
 #Create new columns
 
 concept_vocab_filter_new=concept_vocab_filter %>%
   mutate(tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
   rename(tmp_vocab_id="tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id), \":\", tolower(concept_code))") %>%
   group_by(concept_id) %>%
-  mutate(CONCEPT_SOURCE_CODE = str_c(tmp_vocab_id, collapse = "|")) %>%
-  mutate(CONCEPT_SOURCE_LABEL = str_c(concept_name, collapse = "|")) %>%
-  mutate(CONCEPT_VOCAB = str_c(tolower(vocabulary_id), collapse = "|")) %>%
-  mutate(CONCEPT_VOCAB_VERSION = str_c(tolower(vocabulary_version), collapse = "|")) %>%
+  mutate(CONCEPT_SOURCE_CODE = str_c(tmp_vocab_id, collapse = " | ")) %>%
+  mutate(CONCEPT_SOURCE_LABEL = str_c(concept_name, collapse = " | ")) %>%
+  mutate(CONCEPT_VOCAB = str_c(tolower(vocabulary_id), collapse = " | ")) %>%
+  mutate(CONCEPT_VOCAB_VERSION = str_c(tolower(vocabulary_version), collapse = " | ")) %>%
   rename(STANDARD_CONCEPT=standard_concept,
          CONCEPT_ID=concept_id,
          CONCEPT_LABEL=concept_name) %>%
   select(CONCEPT_ID,CONCEPT_SOURCE_CODE,CONCEPT_LABEL,CONCEPT_SOURCE_LABEL,CONCEPT_VOCAB,CONCEPT_VOCAB_VERSION)
 
-
-
-
 ```
 
-```{r}
-
-#Condition ancestors dataset
-merge1 <- concept
-for(i in 1:nrow(merge1)){
-  temp_row1 <- concept_ancestor[concept_ancestor$ancestor_concept_id == merge1[i,1],]
-  temp_row2 <- vocabulary[vocabulary$vocabulary_id == merge1[i,4], ][,2:5]
-  if(concept[i,4]== "" ){
-    temp_row2 <- vocabulary[1,2:5]
-  }
-  merge1[i,11:14] <- temp_row1
-  merge1[i,15:18] <- temp_row2
-}
-
-colnames(merge1)[11:18] <- c(colnames(concept_ancestor),colnames(vocabulary)[2:5])
-
-```
-
-```{r}
-
-#Filter merged data
-merge1_2 <- merge1
-merge1_2 <- merge1[merge1$descendant_concept_id %in% merge_concept_filter$concept_id,]
-merge1_2 <- merge1_2[merge1_2$concept_name != "No matching concept"]
-merge1_2 <- merge1_2[merge1_2$domain_id == "Condition"]
-merge1_2 <- merge1_2[is.na(merge1_2$concept_id) == FALSE, ]
-
-```
-
-```{r}
-
-#Create new columns
-merge1_3 <- merge1_2
-merge1_3$ANCESTOR_CONCEPT_ID <- paste(merge1_3$concept_id,merge1_3$descendant_concept_id,sep = "|")
-temp_replace <- paste(tolower(merge1_3$vocabulary_id),tolower(merge1_3$concept_code),sep = ":")
-merge1_3$ANCESTOR_SOURCE_CODE <- paste(merge1_3$concept_id,temp_replace,sep = "|")
-merge1_3$ANCESTOR_LABEL <- paste(merge1_3$concept_id,merge1_3$concept_name,sep = "|")
-merge1_3$ANCESTOR_VOCAB <- paste(merge1_3$vocabulary_id,merge1_3$descendant_concept_id,sep = "|")
-merge1_3$ANCESTOR_VOCAB_VERSION <- paste(merge1_3$vocabulary_vocab,merge1_3$descendant_concept_id,sep = "|")
-colnames(merge_concept_filter_new)[12] <- "CONCEPT_ID"
-
-```
-
-```{r}
-
-#Filter concept synonyms
-concept_synonym_filter <- concept_synonym
-concept_synonym_filter <- concept_synonym_filter[concept_synonym_filter$concept_id %in% merge_concept_filter$concept_id,]
-concept_synonym_filter$CONCEPT_SYNONYM <- paste(concept_synonym_filter$concept_id,concept_synonym_filter$concept_synonym_name,"|")
-
-colnames(concept_synonym)[1] <- "CONCEPT_ID"
-
-```
-
-```{r}
-
-#FINAL MERGES
-#for(i in 1:nrow(merge_concept_filter_new)){}
-
-final_merge1 <- data.frame()
-
-for(i in 1:nrow(merge_concept_filter_new)){
-  final_merge1[i,1] <- merge_concept_filter_new[i,1]
-  final_merge1[i,2] <- merge_concept_filter_new[i,6]
-  final_merge1[i,3] <- merge_concept_filter_new[i,2]
-  final_merge1[i,4] <- merge_concept_filter_new[i,15]
-  final_merge1[i,5] <- merge_concept_filter_new[i,16]
-  final_merge1[i,6] <- merge_concept_filter_new[i,17]
-  temp_concept_synonym <- concept_synonym_filter[concept_synonym_filter$CONCEPT_ID == filter_merge1[i,1],]
-  final_merge1[i,7] <- temp_concept_synonym[1,4]
-  temp_concept_ancestor <- merge1_3[merge1_3$CONCEPT_ID == filter_merge[i,1],]
-  final_merge1[i,8] <- temp_concept_ancestor[1,19]
-  final_merge1[i,9] <- temp_concept_ancestor[1,20]
-  final_merge1[i,10] <- temp_concept_ancestor[1,21]
-  final_merge1[i,11] <- temp_concept_ancestor[1,22]
-  final_merge1[i,12] <- temp_concept_ancestor[1,23]
-}
 
 colnames(final_merge1) <- c("CONCEPT_ID", "STANDARD_CONCEPT", "CONCEPT_LABEL", "CONCEPT_SOURCE_CODE", "CONCEPT_SOURCE_LABEL", "CONCEPT_VOCAB_VERSION", "CONCEPT_SYNONYM", "ANCESTOR_CONCEPT_ID", "ANCESTOR_SOURCE_CODE", "ANCESTOR_LABEL", "ANCESTOR_VOCAB", "ANCESTOR_VOCAB_VERSION")
 
