@@ -13,7 +13,8 @@ concept <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data
 # concept <- read_csv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_test.csv", show_col_types = FALSE) 
 
 vocabulary <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/vocabulary_v2.0.txt", show_col_types = FALSE) 
-concept_ancestor <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE)
+concept_ancestor <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE) %>% rename(concept_id=ancestor_concept_id)
+  
 concept_synonym <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE) 
                            
 
@@ -22,31 +23,15 @@ concept_synonym <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/can
 
 ```{r}
 
+# Create Condition Concepts Dataset
+
 # Merge the Concept table with the Vocabulary table:  Primary key: concept_id 
                              
-concept_vocab_merged=full_join(concept,vocabulary,by='vocabulary_id')
-
-
-```
-
-
-```{r}
-
-# filter data
-
-concept_vocab_filter=concept_vocab_merged %>%
+concept_vocab_filter=full_join(concept,vocabulary,by='vocabulary_id') %>% 
   filter(concept_name != "No matching concept") %>%
   filter(domain_id == "Condition") %>%
   filter(standard_concept == "S") %>%
-  filter(vocabulary_id == "SNOMED")
-
-```
-
-```{r}
-
-#Create new columns
-
-concept_vocab_filter_new=concept_vocab_filter %>%
+  filter(vocabulary_id == "SNOMED") %>%
   mutate(tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
   rename(tmp_vocab_id="tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id), \":\", tolower(concept_code))") %>%
   group_by(concept_id) %>%
@@ -59,9 +44,32 @@ concept_vocab_filter_new=concept_vocab_filter %>%
          CONCEPT_LABEL=concept_name) %>%
   select(CONCEPT_ID,CONCEPT_SOURCE_CODE,CONCEPT_LABEL,CONCEPT_SOURCE_LABEL,CONCEPT_VOCAB,CONCEPT_VOCAB_VERSION)
 
+
 ```
 
 
-colnames(final_merge1) <- c("CONCEPT_ID", "STANDARD_CONCEPT", "CONCEPT_LABEL", "CONCEPT_SOURCE_CODE", "CONCEPT_SOURCE_LABEL", "CONCEPT_VOCAB_VERSION", "CONCEPT_SYNONYM", "ANCESTOR_CONCEPT_ID", "ANCESTOR_SOURCE_CODE", "ANCESTOR_LABEL", "ANCESTOR_VOCAB", "ANCESTOR_VOCAB_VERSION")
+
+
+```{r}
+
+# Create Condition Ancestors Dataset
+
+# Merge the Concept table with the ancestor table:  Primary key: concept_id 
+                             
+concept_ancestor_merged=full_join(concept,concept_ancestor,by='concept_id')
+
+# Merge the above table with the vocabulary table:  Primary key: vocabulary_id 
+                             
+concept_ancestor_vocab_merged=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_id')
+rm(concept_ancestor_merged)
+
+# list the concept-ids from Conditions Concept Dataset
+concept_id=concept_vocab_filter_new$CONCEPT_ID
+
+# filter out the Descendant_concept_id that DONT MATCH the concept-ids from above
+
+concept_ancestor_vocab_merged_trim=concept_ancestor_vocab_merged %>%
+  filter(descendant_concept_id %in% concept_id)
+
 
 ```
