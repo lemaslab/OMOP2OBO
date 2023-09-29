@@ -55,8 +55,8 @@ concept_vocab_filter=full_join(concept,vocabulary,by='vocabulary_id') %>%
   filter(domain_id == "Condition") %>%
   filter(standard_concept == "S") %>%
   filter(vocabulary_id == "SNOMED") %>%
-  mutate(tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
-  rename(tmp_vocab_id="tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id), \":\", tolower(concept_code))") %>%
+  mutate(tolower_vocab_id_tmp = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
+  #rename(tmp_vocab_id="tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id), \":\", tolower(concept_code))") %>%
   group_by(concept_id) %>%
   mutate(CONCEPT_SOURCE_CODE = str_c(tmp_vocab_id, collapse = " | ")) %>%
   mutate(CONCEPT_SOURCE_LABEL = str_c(concept_name, collapse = " | ")) %>%
@@ -71,7 +71,7 @@ concept_vocab_filter=full_join(concept,vocabulary,by='vocabulary_id') %>%
 concept_id=concept_vocab_filter$CONCEPT_ID
 
 # save memory
-rm(concept_vocab_filter)
+#rm(concept_vocab_filter)
 
 ```
 
@@ -80,7 +80,7 @@ rm(concept_vocab_filter)
 
 ```{r}
 
-# Create Condition Ancestors Dataset
+# Create Condition Ancestors Dataset (run on UFRC)
 
 # Merge the Concept table with the ancestor table:  Primary key: concept_id 
                              
@@ -89,17 +89,29 @@ concept_ancestor_merged=full_join(concept,concept_ancestor,by='concept_id')
 # Merge the above table with the vocabulary table:  Primary key: vocabulary_id 
                              
 concept_ancestor_vocab_merged=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_id') %>%
-  #filter(descendant_concept_id %in% concept_id) %>%
+  filter(descendant_concept_id %in% concept_id) %>%
   filter(concept_name != "No matching concept") %>%
   filter(domain_id == "Condition") %>%
-  filter(concept_id != NULL)
+  filter(!is.na(concept_id)) %>%
+  filter(!is.null(concept_id)) %>%
+  group_by(concept_id) %>%
+  mutate(ANCESTOR_CONCEPT_ID = str_c(descendant_concept_id, collapse = " | ")) %>%
+  mutate(ANCESTOR_SOURCE_CODE = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
+  
+
+dim(concept_ancestor_vocab_merged)
+names(concept_ancestor_vocab_merged)
+
+head(concept_ancestor_vocab_merged)
 
 rm(concept_ancestor_merged,concept_vocab_filter)
 rm(concept,concept_ancestor)
 rm(concept_ancestor_vocab_merged_trim)
 
 
-
-
+# output from UFRC
+save(concept_ancestor_vocab_merged, file = "concept_ancestor.RData")
+  
+load(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor.RData")
 
 ```
