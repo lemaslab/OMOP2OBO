@@ -105,6 +105,8 @@ concept_ancestor_df=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_
          ANCESTOR_SOURCE_CODE_tmp = paste0(tolower(vocabulary_id),":",tolower(concept_code)),
          ANCESTOR_SOURCE_CODE = paste(ANCESTOR_SOURCE_CODE_tmp, sep = " | "))
 
+# need to merge new variables into the main datframe after using summarize() funciton
+
 
 length(intersect(concept_ancestor_df$descendant_concept_id,ccdf_concept_id))
 
