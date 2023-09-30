@@ -46,17 +46,16 @@ concept_ancestor <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_
 
 ```{r}
 
-# Create Condition Concepts Dataset
+# Create Condition Concepts Dataset (condition_concept_df)
 
 # Merge the Concept table with the Vocabulary table:  Primary key: concept_id 
                              
-concept_vocab_filter=full_join(concept,vocabulary,by='vocabulary_id') %>% 
+condition_concept_df=full_join(concept,vocabulary,by='vocabulary_id') %>% 
   filter(concept_name != "No matching concept") %>%
   filter(domain_id == "Condition") %>%
   filter(standard_concept == "S") %>%
   filter(vocabulary_id == "SNOMED") %>%
-  mutate(tolower_vocab_id_tmp = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
-  #rename(tmp_vocab_id="tolower_vocab_id_tmp <- paste0(tolower(vocabulary_id), \":\", tolower(concept_code))") %>%
+  mutate(tmp_vocab_id = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
   group_by(concept_id) %>%
   mutate(CONCEPT_SOURCE_CODE = str_c(tmp_vocab_id, collapse = " | ")) %>%
   mutate(CONCEPT_SOURCE_LABEL = str_c(concept_name, collapse = " | ")) %>%
@@ -67,8 +66,9 @@ concept_vocab_filter=full_join(concept,vocabulary,by='vocabulary_id') %>%
          CONCEPT_LABEL=concept_name) %>%
   select(CONCEPT_ID,CONCEPT_SOURCE_CODE,CONCEPT_LABEL,CONCEPT_SOURCE_LABEL,CONCEPT_VOCAB,CONCEPT_VOCAB_VERSION)
 
+# 
 # list the concept-ids from Conditions Concept Dataset
-concept_id=concept_vocab_filter$CONCEPT_ID
+ccdf_concept_id=condition_concept_df$CONCEPT_ID
 
 # save memory
 #rm(concept_vocab_filter)
@@ -80,7 +80,7 @@ concept_id=concept_vocab_filter$CONCEPT_ID
 
 ```{r}
 
-# Create Condition Ancestors Dataset (run on UFRC)
+# Create Condition Ancestors Dataset (condition_ancestor_df)
 
 # Merge the Concept table with the ancestor table:  Primary key: concept_id 
                              
@@ -88,7 +88,7 @@ concept_ancestor_merged=full_join(concept,concept_ancestor,by='concept_id')
 
 # Merge the above table with the vocabulary table:  Primary key: vocabulary_id 
                              
-concept_ancestor_vocab_merged=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_id') %>%
+concept_ancestor_df=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_id') %>%
   filter(descendant_concept_id %in% concept_id) %>%
   filter(concept_name != "No matching concept") %>%
   filter(domain_id == "Condition") %>%
