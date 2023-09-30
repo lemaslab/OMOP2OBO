@@ -22,22 +22,28 @@ concept_ancestor <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/ca
 
 ```{r}
 
-library(readr)
-library(tidyverse)
-library(stringr)
+# created params.R script that contains code below. Run as source from R CLI. 
 
-# notes: https://ohdsi.github.io/CommonDataModel/cdm60.html#VOCABULARY
+source("/blue/djlemas/share/data/Benchmark/OMOP/data_release/ufrc/utils/params.R")
 
-#Read in data as separate data frames
-
-concept <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_v2.0.txt", show_col_types = FALSE) 
-
-# concept <- read_csv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_test.csv", show_col_types = FALSE) 
-
-vocabulary <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/vocabulary_v2.0.txt", show_col_types = FALSE) 
-concept_ancestor <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE) %>% rename(concept_id=ancestor_concept_id)
-  
-#concept_synonym <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE) 
+# library(readr)
+# library(tidyverse)
+# library(stringr)
+# 
+# # data location: /blue/djlemas/share/data/Benchmark/OMOP/data_release/
+# 
+# # notes: https://ohdsi.github.io/CommonDataModel/cdm60.html#VOCABULARY
+# 
+# #Read in data as separate data frames
+# 
+# concept <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_v2.0.txt", show_col_types = FALSE)
+# 
+# # concept <- read_csv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_test.csv", show_col_types = FALSE)
+# 
+# vocabulary <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/vocabulary_v2.0.txt", show_col_types = FALSE)
+# concept_ancestor <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE) %>% rename(concept_id=ancestor_concept_id)
+# 
+# concept_synonym <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE)
                            
 
 ```
@@ -57,10 +63,10 @@ condition_concept_df=full_join(concept,vocabulary,by='vocabulary_id') %>%
   filter(vocabulary_id == "SNOMED") %>%
   mutate(tmp_vocab_id = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
   group_by(concept_id) %>%
-  mutate(CONCEPT_SOURCE_CODE = str_c(tmp_vocab_id, collapse = " | ")) %>%
-  mutate(CONCEPT_SOURCE_LABEL = str_c(concept_name, collapse = " | ")) %>%
-  mutate(CONCEPT_VOCAB = str_c(tolower(vocabulary_id), collapse = " | ")) %>%
-  mutate(CONCEPT_VOCAB_VERSION = str_c(tolower(vocabulary_version), collapse = " | ")) %>%
+  mutate(CONCEPT_SOURCE_CODE = paste(tmp_vocab_id, sep = " | ")) %>%
+  mutate(CONCEPT_SOURCE_LABEL = paste(concept_name, sep = " | ")) %>%
+  mutate(CONCEPT_VOCAB = paste(tolower(vocabulary_id), sep = " | ")) %>%
+  mutate(CONCEPT_VOCAB_VERSION = paste((tolower(vocabulary_version)), sep = " | ")) %>%
   rename(STANDARD_CONCEPT=standard_concept,
          CONCEPT_ID=concept_id,
          CONCEPT_LABEL=concept_name) %>%
@@ -69,9 +75,6 @@ condition_concept_df=full_join(concept,vocabulary,by='vocabulary_id') %>%
 # 
 # list the concept-ids from Conditions Concept Dataset
 ccdf_concept_id=condition_concept_df$CONCEPT_ID
-
-# save memory
-#rm(concept_vocab_filter)
 
 ```
 
@@ -89,29 +92,33 @@ concept_ancestor_merged=full_join(concept,concept_ancestor,by='concept_id')
 # Merge the above table with the vocabulary table:  Primary key: vocabulary_id 
                              
 concept_ancestor_df=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_id') %>%
+  as_tibble() %>%
   filter(descendant_concept_id %in% concept_id) %>%
   filter(concept_name != "No matching concept") %>%
   filter(domain_id == "Condition") %>%
   filter(!is.na(concept_id)) %>%
   filter(!is.null(concept_id)) %>%
-  group_by(concept_id) %>%
-  mutate(ANCESTOR_CONCEPT_ID = str_c(descendant_concept_id, collapse = " | ")) %>%
-  mutate(ANCESTOR_SOURCE_CODE = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
+  group_by(descendant_concept_id) %>%
+  mutate(ANCESTOR_CONCEPT_ID = paste(concept_id, sep = " | "),
+         ANCESTOR_SOURCE_CODE_tmp = paste0(tolower(vocabulary_id),":",tolower(concept_code)),
+         ANCESTOR_SOURCE_CODE = paste(ANCESTOR_SOURCE_CODE_tmp, sep = " | "))
+
+
+dim(concept_ancestor_df)
+
+length(concept_ancestor_df$concept_id)               # 80375173
+length(unique(concept_ancestor_df$concept_id))       # 6628707
+
+length(concept_ancestor_df$descendant_concept_id)    # 80375173 
+length(unique(concept_ancestor_df$descendant_concept_id))  # 3810042
+
   
-
-dim(concept_ancestor_vocab_merged)
-names(concept_ancestor_vocab_merged)
-
-head(concept_ancestor_vocab_merged)
-
-rm(concept_ancestor_merged,concept_vocab_filter)
-rm(concept,concept_ancestor)
-rm(concept_ancestor_vocab_merged_trim)
+  test_df=concept_ancestor_df[1:1000,]
 
 
 # output from UFRC
-save(concept_ancestor_vocab_merged, file = "concept_ancestor.RData")
+save(test_df, file = "concept_ancestor_test.RData")
   
-load(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor.RData")
+load(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_test.RData")
 
 ```
