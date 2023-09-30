@@ -93,18 +93,25 @@ concept_ancestor_merged=full_join(concept,concept_ancestor,by='concept_id')
                              
 concept_ancestor_df=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_id') %>%
   as_tibble() %>%
-  filter(descendant_concept_id %in% concept_id) %>%
-  filter(concept_name != "No matching concept") %>%
-  filter(domain_id == "Condition") %>%
-  filter(!is.na(concept_id)) %>%
-  filter(!is.null(concept_id)) %>%
+  filter(descendant_concept_id %in% ccdf_concept_id,
+         concept_name != "No matching concept",
+         domain_id == "Condition",
+         !is.na(concept_id),
+         !is.null(concept_id)) %>%
   group_by(descendant_concept_id) %>%
-  mutate(ANCESTOR_CONCEPT_ID = paste(concept_id, sep = " | "),
+  summarize(ANCESTOR_CONCEPT_ID = str_c(concept_id, collapse = "| "),
+         ANCESTOR_CONCEPT_ID_tmp=str_count(ANCESTOR_CONCEPT_ID, pattern = "|")) %>%
+  filter(ANCESTOR_CONCEPT_ID_tmp==15)
          ANCESTOR_SOURCE_CODE_tmp = paste0(tolower(vocabulary_id),":",tolower(concept_code)),
          ANCESTOR_SOURCE_CODE = paste(ANCESTOR_SOURCE_CODE_tmp, sep = " | "))
 
 
+length(intersect(concept_ancestor_df$descendant_concept_id,ccdf_concept_id))
+
 dim(concept_ancestor_df)
+str(concept_ancestor_df)
+which(concept_ancestor_df$concept_name=="No matching concept")
+table(concept_ancestor_df$ANCESTOR_CONCEPT_ID_tmp)
 
 length(concept_ancestor_df$concept_id)               # 80375173
 length(unique(concept_ancestor_df$concept_id))       # 6628707
@@ -112,8 +119,12 @@ length(unique(concept_ancestor_df$concept_id))       # 6628707
 length(concept_ancestor_df$descendant_concept_id)    # 80375173 
 length(unique(concept_ancestor_df$descendant_concept_id))  # 3810042
 
+concept_ancestor_df$
+  names(concept_ancestor_df)
+head(concept_ancestor_df)
+
   
-  test_df=concept_ancestor_df[1:1000,]
+  test_df=concept_ancestor_df
 
 
 # output from UFRC
