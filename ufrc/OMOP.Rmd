@@ -114,59 +114,47 @@ ANCESTOR_SOURCE_CODE_tmp = concept_ancestor_df_tmp %>%
 ANCESTOR_VOCAB_tmp = concept_ancestor_df_tmp %>%
   group_by(descendant_concept_id) %>%
   distinct(vocabulary_id,.keep_all = TRUE) %>%
-  summarize(ANCESTOR_VOCAB = str_c(vocabulary_id, collapse = "| ")) %>%
-  mutate( ANCESTOR_VOCAB_tmp=str_count(ANCESTOR_VOCAB, pattern = "|")) %>%
-  select(descendant_concept_id,ANCESTOR_VOCAB,ANCESTOR_VOCAB_tmp)
+  mutate(count=n_distinct(vocabulary_id)) %>%
+  # filter(count==2) %>%
+  summarize(ANCESTOR_VOCAB = str_c(vocabulary_id, collapse = "| ")) 
 
-table(ANCESTOR_VOCAB_tmp$ANCESTOR_VOCAB_tmp)
+# create ANCESTOR_VOCAB_VERSION
+ANCESTOR_VOCAB_VERSION_tmp = concept_ancestor_df_tmp %>%
+  group_by(descendant_concept_id) %>%
+  distinct(vocabulary_version,.keep_all = TRUE) %>%
+  mutate(count=n_distinct(vocabulary_version)) %>%
+  # filter(count==2) %>%
+  summarize(ANCESTOR_VOCAB_VERSION = str_c(vocabulary_version, collapse = "| ")) 
 
+# merge new variables into dataframe
+#----------------------------------
 
-df <- tibble(
-  g = c(1, 1, 2, 2, 2),
-  x = c(1, 1, 2, 1, 2),
-  y = c(3, 2, 1, 3, 1)
-)
+# ANCESTOR_CONCEPT_ID
+concept_ancestor_df_tmp1=left_join(concept_ancestor_df_tmp, ANCESTOR_CONCEPT_ID_tmp)
 
-df <- df %>% group_by(g)
+# ANCESTOR_SOURCE_CODE
+concept_ancestor_df_tmp2=left_join(concept_ancestor_df_tmp1, ANCESTOR_SOURCE_CODE_tmp)
 
-df_1=df %>% distinct(x,.keep_all = TRUE)
+# ANCESTOR_VOCAB
+concept_ancestor_df_tmp3=left_join(concept_ancestor_df_tmp2, ANCESTOR_VOCAB_tmp)
 
-test=distinct(df, x, .keep_all = TRUE)
+# ANCESTOR_VOCAB_VERSION
+concept_ancestor_df_tmp4=left_join(concept_ancestor_df_tmp3, ANCESTOR_VOCAB_VERSION_tmp)
 
+# select variables of interest
 
+concept_ancestor_df=concept_ancestor_df_tmp4 %>%
+  select(descendant_concept_id,ANCESTOR_CONCEPT_ID,ANCESTOR_SOURCE_CODE,ANCESTOR_VOCAB,ANCESTOR_VOCAB_VERSION) %>%
+  rename(CONCEPT_ID=descendant_concept_id)
 
-
-head(ANCESTOR_VOCAB_tmp)
-dim(concept_ancestor_df_tmp)
-dim(ANCESTOR_VOCAB_tmp)
-
-unique(concept_ancestor_df_tmp$vocabulary_id)
-
-
-length(intersect(concept_ancestor_df$descendant_concept_id,ccdf_concept_id))
-
-dim(concept_ancestor_df)
-str(concept_ancestor_df)
-which(concept_ancestor_df$concept_name=="No matching concept")
-table(concept_ancestor_df$ANCESTOR_CONCEPT_ID_tmp)
-
-length(concept_ancestor_df$concept_id)               # 80375173
-length(unique(concept_ancestor_df$concept_id))       # 6628707
-
-length(concept_ancestor_df$descendant_concept_id)    # 80375173 
-length(unique(concept_ancestor_df$descendant_concept_id))  # 3810042
-
-concept_ancestor_df$
-  names(concept_ancestor_df)
+names(concept_ancestor_df)
 head(concept_ancestor_df)
 
-  
-  test_df=concept_ancestor_df
-
+# test_df=concept_ancestor_df
 
 # output from UFRC
-save(test_df, file = "concept_ancestor_test.RData")
+save(concept_ancestor_df, file = "concept_ancestor_df.RData")
   
-load(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_test.RData")
+# load(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_test.RData")
 
 ```
