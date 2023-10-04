@@ -113,12 +113,28 @@ ANCESTOR_SOURCE_CODE_tmp = concept_ancestor_df_tmp %>%
 # create ANCESTOR_VOCAB
 ANCESTOR_VOCAB_tmp = concept_ancestor_df_tmp %>%
   group_by(descendant_concept_id) %>%
-  distinct(vocabulary_id) %>%
+  distinct(vocabulary_id,.keep_all = TRUE) %>%
   summarize(ANCESTOR_VOCAB = str_c(vocabulary_id, collapse = "| ")) %>%
   mutate( ANCESTOR_VOCAB_tmp=str_count(ANCESTOR_VOCAB, pattern = "|")) %>%
   select(descendant_concept_id,ANCESTOR_VOCAB,ANCESTOR_VOCAB_tmp)
 
 table(ANCESTOR_VOCAB_tmp$ANCESTOR_VOCAB_tmp)
+
+
+df <- tibble(
+  g = c(1, 1, 2, 2, 2),
+  x = c(1, 1, 2, 1, 2),
+  y = c(3, 2, 1, 3, 1)
+)
+
+df <- df %>% group_by(g)
+
+df_1=df %>% distinct(x,.keep_all = TRUE)
+
+test=distinct(df, x, .keep_all = TRUE)
+
+
+
 
 head(ANCESTOR_VOCAB_tmp)
 dim(concept_ancestor_df_tmp)
