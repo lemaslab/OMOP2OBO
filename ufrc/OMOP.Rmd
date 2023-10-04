@@ -57,16 +57,16 @@ source("/blue/djlemas/share/data/Benchmark/OMOP/data_release/ufrc/utils/params.R
 # Merge the Concept table with the Vocabulary table:  Primary key: concept_id 
                              
 condition_concept_df=full_join(concept,vocabulary,by='vocabulary_id') %>% 
-  filter(concept_name != "No matching concept") %>%
-  filter(domain_id == "Condition") %>%
-  filter(standard_concept == "S") %>%
-  filter(vocabulary_id == "SNOMED") %>%
+  filter(concept_name != "No matching concept",
+         domain_id == "Condition",
+         standard_concept == "S",
+         vocabulary_id == "SNOMED") %>%
   mutate(tmp_vocab_id = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
   group_by(concept_id) %>%
-  mutate(CONCEPT_SOURCE_CODE = paste(tmp_vocab_id, sep = " | ")) %>%
-  mutate(CONCEPT_SOURCE_LABEL = paste(concept_name, sep = " | ")) %>%
-  mutate(CONCEPT_VOCAB = paste(tolower(vocabulary_id), sep = " | ")) %>%
-  mutate(CONCEPT_VOCAB_VERSION = paste((tolower(vocabulary_version)), sep = " | ")) %>%
+  mutate(CONCEPT_SOURCE_CODE = paste(tmp_vocab_id, sep = " | "),
+         CONCEPT_SOURCE_LABEL = paste(concept_name, sep = " | "),
+         CONCEPT_VOCAB = paste(tolower(vocabulary_id), sep = " | "),
+         CONCEPT_VOCAB_VERSION = paste((tolower(vocabulary_version)), sep = " | ")) %>%
   rename(STANDARD_CONCEPT=standard_concept,
          CONCEPT_ID=concept_id,
          CONCEPT_LABEL=concept_name) %>%
@@ -91,21 +91,38 @@ concept_ancestor_merged=full_join(concept,concept_ancestor,by='concept_id')
 
 # Merge the above table with the vocabulary table:  Primary key: vocabulary_id 
                              
-concept_ancestor_df=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_id') %>%
+concept_ancestor_df_tmp=full_join(concept_ancestor_merged,vocabulary,by='vocabulary_id') %>%
   as_tibble() %>%
   filter(descendant_concept_id %in% ccdf_concept_id,
          concept_name != "No matching concept",
          domain_id == "Condition",
          !is.na(concept_id),
-         !is.null(concept_id)) %>%
-  group_by(descendant_concept_id) %>%
-  summarize(ANCESTOR_CONCEPT_ID = str_c(concept_id, collapse = "| "),
-         ANCESTOR_CONCEPT_ID_tmp=str_count(ANCESTOR_CONCEPT_ID, pattern = "|")) %>%
-  filter(ANCESTOR_CONCEPT_ID_tmp==15)
-         ANCESTOR_SOURCE_CODE_tmp = paste0(tolower(vocabulary_id),":",tolower(concept_code)),
-         ANCESTOR_SOURCE_CODE = paste(ANCESTOR_SOURCE_CODE_tmp, sep = " | "))
+         !is.null(concept_id)) 
 
-# need to merge new variables into the main datframe after using summarize() funciton
+# create ANCESTOR_CONCEPT
+ANCESTOR_CONCEPT_ID_tmp=concept_ancestor_df_tmp%>%
+  group_by(descendant_concept_id) %>%
+  summarize(ANCESTOR_CONCEPT_ID = str_c(concept_id, collapse = "| ")) 
+
+# create ANCESTOR_SOURCE_CODE
+ANCESTOR_SOURCE_CODE_tmp = concept_ancestor_df_tmp %>%
+  group_by(descendant_concept_id) %>%
+  mutate(ANCESTOR_SOURCE_CODE_tmp = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
+  summarize(ANCESTOR_SOURCE_CODE = str_c(ANCESTOR_SOURCE_CODE_tmp, collapse = "| "))
+
+# create ANCESTOR_VOCAB
+ANCESTOR_VOCAB_tmp = concept_ancestor_df_tmp %>%
+  group_by(descendant_concept_id) %>%
+  distinct(vocabulary_id) %>%
+  summarize(ANCESTOR_VOCAB = str_c(vocabulary_id, collapse = "| ")) %>%
+  mutate( ANCESTOR_VOCAB_tmp=str_count(ANCESTOR_VOCAB, pattern = "|")) %>%
+  select(descendant_concept_id,ANCESTOR_VOCAB,ANCESTOR_VOCAB_tmp)
+
+table(ANCESTOR_VOCAB_tmp$ANCESTOR_VOCAB_tmp)
+
+head(ANCESTOR_VOCAB_tmp)
+
+unique(ANCESTOR_VOCAB_tmp$)
 
 
 length(intersect(concept_ancestor_df$descendant_concept_id,ccdf_concept_id))
