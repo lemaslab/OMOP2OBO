@@ -121,8 +121,10 @@ ANCESTOR_VOCAB_tmp = concept_ancestor_df_tmp %>%
 table(ANCESTOR_VOCAB_tmp$ANCESTOR_VOCAB_tmp)
 
 head(ANCESTOR_VOCAB_tmp)
+dim(concept_ancestor_df_tmp)
+dim(ANCESTOR_VOCAB_tmp)
 
-unique(ANCESTOR_VOCAB_tmp$)
+unique(concept_ancestor_df_tmp$vocabulary_id)
 
 
 length(intersect(concept_ancestor_df$descendant_concept_id,ccdf_concept_id))
