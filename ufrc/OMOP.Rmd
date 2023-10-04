@@ -56,17 +56,66 @@ source("/blue/djlemas/share/data/Benchmark/OMOP/data_release/ufrc/utils/params.R
 
 # Merge the Concept table with the Vocabulary table:  Primary key: concept_id 
                              
-condition_concept_df=full_join(concept,vocabulary,by='vocabulary_id') %>% 
+condition_concept_df_tm=full_join(concept,vocabulary,by='vocabulary_id') %>% 
   filter(concept_name != "No matching concept",
          domain_id == "Condition",
          standard_concept == "S",
-         vocabulary_id == "SNOMED") %>%
-  mutate(tmp_vocab_id = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
+         vocabulary_id == "SNOMED") 
+
+# create CONCEPT_SOURCE_CODE
+CONCEPT_SOURCE_CODE_tmp=condition_concept_df_tm %>%
   group_by(concept_id) %>%
-  mutate(CONCEPT_SOURCE_CODE = paste(tmp_vocab_id, sep = " | "),
-         CONCEPT_SOURCE_LABEL = paste(concept_name, sep = " | "),
-         CONCEPT_VOCAB = paste(tolower(vocabulary_id), sep = " | "),
-         CONCEPT_VOCAB_VERSION = paste((tolower(vocabulary_version)), sep = " | ")) %>%
+  mutate(tmp_vocab_id = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
+  distinct(tmp_vocab_id,.keep_all = TRUE) %>%
+  # mutate(test=n_distinct(tmp_vocab_id)) %>%
+  summarize(CONCEPT_SOURCE_CODE = str_c(tmp_vocab_id, collapse = "| ")) 
+  
+    # check
+    # head(CONCEPT_SOURCE_CODE_tmp)
+    # table(CONCEPT_SOURCE_CODE_tmp$test)
+    # dim(CONCEPT_SOURCE_CODE_tmp)
+    # dim(condition_concept_df_tm)
+
+# create CONCEPT_SOURCE_LABEL
+CONCEPT_SOURCE_LABEL_tmp=condition_concept_df_tm %>%
+  group_by(concept_id) %>%
+  distinct(concept_name,.keep_all = TRUE) %>%
+  mutate(test=n_distinct(concept_name)) %>%
+  summarize(CONCEPT_SOURCE_LABEL = str_c(concept_name, collapse = "| "))
+
+    # check
+    # head(CONCEPT_SOURCE_LABEL_tmp)
+    # table(CONCEPT_SOURCE_LABEL_tmp$test)
+    # dim(CONCEPT_SOURCE_LABEL_tmp)
+    # dim(condition_concept_df_tm)
+
+# create CONCEPT_VOCAB
+CONCEPT_VOCAB_tmp=condition_concept_df_tm %>%
+  group_by(concept_id) %>%
+  distinct(vocabulary_id,.keep_all = TRUE) %>%
+  mutate(test=n_distinct(vocabulary_id)) %>%
+  summarize(CONCEPT_VOCAB = str_c(tolower(vocabulary_id), collapse = "| "))
+         
+    # check
+    # head(CONCEPT_VOCAB_tmp)
+    # table(CONCEPT_VOCAB_tmp$test)
+    # dim(CONCEPT_VOCAB_tmp)
+    # dim(condition_concept_df_tm)
+
+# create CONCEPT_VOCAB_VERSION
+CONCEPT_VOCAB_VERSION_tmp=condition_concept_df_tm %>%
+  group_by(concept_id) %>%
+  distinct(vocabulary_version,.keep_all = TRUE) %>%
+  mutate(test=n_distinct(vocabulary_version)) %>%
+  summarize(CONCEPT_VOCAB_VERSION = str_c((tolower(vocabulary_version)), collapse = "| ")) 
+
+    # check
+    # head(CONCEPT_VOCAB_VERSION_tmp)
+    # table(CONCEPT_VOCAB_VERSION_tmp$test)
+    # dim(CONCEPT_VOCAB_VERSION_tmp)
+    # dim(condition_concept_df_tm)
+
+%>%
   rename(STANDARD_CONCEPT=standard_concept,
          CONCEPT_ID=concept_id,
          CONCEPT_LABEL=concept_name) %>%
