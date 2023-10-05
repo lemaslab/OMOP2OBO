@@ -135,7 +135,7 @@ condition_concept_df = condition_concept_df_tmp4 %>%
   rename(STANDARD_CONCEPT=standard_concept,
          CONCEPT_ID=concept_id,
          CONCEPT_LABEL=concept_name) %>%
-  select(CONCEPT_ID,CONCEPT_SOURCE_CODE,CONCEPT_LABEL,CONCEPT_SOURCE_LABEL,CONCEPT_VOCAB,CONCEPT_VOCAB_VERSION)
+  select(CONCEPT_ID,STANDARD_CONCEPT,CONCEPT_SOURCE_CODE,CONCEPT_LABEL,CONCEPT_SOURCE_LABEL,CONCEPT_VOCAB,CONCEPT_VOCAB_VERSION)
 
 head(condition_concept_df)
 
@@ -177,6 +177,14 @@ ANCESTOR_SOURCE_CODE_tmp = concept_ancestor_df_tmp %>%
   mutate(ANCESTOR_SOURCE_CODE_tmp = paste0(tolower(vocabulary_id),":",tolower(concept_code))) %>%
   summarize(ANCESTOR_SOURCE_CODE = str_c(ANCESTOR_SOURCE_CODE_tmp, collapse = "| "))
 
+# # create ANCESTOR_LABEL
+ANCESTOR_LABEL_tmp = concept_ancestor_df_tmp %>%
+  group_by(descendant_concept_id) %>%
+  distinct(concept_name,.keep_all = TRUE) %>%
+  mutate(count=n_distinct(concept_name)) %>%
+  # filter(count==2) %>%
+  summarize(ANCESTOR_LABEL = str_c(concept_name, collapse = "| "))
+
 # create ANCESTOR_VOCAB
 ANCESTOR_VOCAB_tmp = concept_ancestor_df_tmp %>%
   group_by(descendant_concept_id) %>%
@@ -208,20 +216,81 @@ concept_ancestor_df_tmp3=left_join(concept_ancestor_df_tmp2, ANCESTOR_VOCAB_tmp)
 # ANCESTOR_VOCAB_VERSION
 concept_ancestor_df_tmp4=left_join(concept_ancestor_df_tmp3, ANCESTOR_VOCAB_VERSION_tmp)
 
+# ANCESTOR_LABEL
+concept_ancestor_df_tmp5=left_join(concept_ancestor_df_tmp4, ANCESTOR_LABEL_tmp)
+
 # select variables of interest
 
-concept_ancestor_df=concept_ancestor_df_tmp4 %>%
-  select(descendant_concept_id,ANCESTOR_CONCEPT_ID,ANCESTOR_SOURCE_CODE,ANCESTOR_VOCAB,ANCESTOR_VOCAB_VERSION) %>%
+concept_ancestor_df=concept_ancestor_df_tmp5 %>%
+  select(descendant_concept_id,ANCESTOR_CONCEPT_ID,ANCESTOR_SOURCE_CODE,ANCESTOR_LABEL,ANCESTOR_VOCAB,ANCESTOR_VOCAB_VERSION) %>%
   rename(CONCEPT_ID=descendant_concept_id)
 
-names(concept_ancestor_df)
-head(concept_ancestor_df)
+# names(concept_ancestor_df)
+# head(concept_ancestor_df)
 
-# test_df=concept_ancestor_df
+```
+
+```{r}
+
+# Create Conditions Synonyms Dataset (condition_synonym_df)
+
+# filter table to remove all rows where concept_id does not match IDs present in Condition Concept Dataset 
+                             
+condition_synonym_df=concept_synonym %>%
+  as_tibble() %>%
+  filter(concept_id %in% ccdf_concept_id) %>%
+  group_by(concept_id) %>%
+  distinct(concept_synonym_name,.keep_all = TRUE) %>%
+  # mutate(test=n_distinct(concept_synonym_name)) %>%
+  summarize(CONCEPT_SYNONYM = str_c(concept_synonym_name, collapse = "| ")) %>%
+  rename(CONCEPT_ID=concept_id)
+
+    # check
+    # head(condition_synonym_df)
+    # table(condition_synonym_df$test)
+    # dim(condition_synonym_df)
+    # dim(condition_synonym_df)
+ 
+
+```
+
+```{r}
+
+# Generate Final Combined Data (input for OMOP2OBO)
+
+# Make the following merges, in order:
+     # i.   Conditions Concept Dataset with Condition Ancestors Dataset (final_merge1): Primary key: concept_id
+     # ii.    Merge final_merge1 data with the Conditions Synonyms Dataset: Primary key: concept_id
+
+# condition concept
+condition_concept_df
+dim(condition_concept_df)
+
+# concept_ancestor_df
+concept_ancestor_df
+dim(concept_ancestor_df)
+
+# condition_synonym_df
+condition_synonym_df
+dim(condition_synonym_df)
+
+# final_merge1
+
+final_merge1=left_join(concept_ancestor_df,condition_concept_df)
+
+# final_merge2
+final_merge2=left_join(final_merge1,condition_synonym_df)
+
+# reorder columns
+condition_occurrence_final_df=final_merge2 %>%
+  select(CONCEPT_ID,STANDARD_CONCEPT,CONCEPT_LABEL,CONCEPT_SOURCE_CODE,CONCEPT_SOURCE_LABEL,CONCEPT_VOCAB_VERSION,
+         CONCEPT_SYNONYM,ANCESTOR_CONCEPT_ID,ANCESTOR_SOURCE_CODE,ANCESTOR_LABEL,ANCESTOR_VOCAB,ANCESTOR_VOCAB_VERSION)
+
 
 # output from UFRC
-save(concept_ancestor_df, file = "concept_ancestor_df.RData")
+# save(condition_occurrence_final_df, file = "condition_occurrence_final_df.RData")
   
-# load(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_test.RData")
+# load(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/condition_occurrence_final_df.RData")
+
 
 ```
