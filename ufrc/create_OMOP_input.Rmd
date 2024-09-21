@@ -1,0 +1,81 @@
+```{r}
+
+# load libraries
+
+library(readr)
+library(dplyr)
+library(readr)
+
+# notes: https://ohdsi.github.io/CommonDataModel/cdm60.html#VOCABULARY
+# notes: https://github.com/callahantiff/OMOP2OBO/tree/master/resources/clinical_data
+
+# data location: /blue/djlemas/share/data/Benchmark/OMOP/data_release/
+
+```
+
+```{r}
+
+# Step 1: Load the flat files
+
+source("/blue/djlemas/share/data/Benchmark/OMOP/data_release/ufrc/utils/params.R")
+
+```
+
+```{r}
+# Step 2: Create the condition_concepts table
+
+condition_concepts <- condition_occurrence %>%
+  inner_join(concept, by = c("condition_concept_id" = "concept_id")) %>%
+  inner_join(vocabulary, by = c("vocabulary_id" = "vocabulary_id")) %>%
+  filter(concept_name != "No matching concept", domain_id == "Condition") %>%
+  select(
+    CONCEPT_ID = condition_concept_id,
+    CONCEPT_SOURCE_CODE = concept_code,
+    CONCEPT_LABEL = concept_name,
+    CONCEPT_VOCAB = vocabulary_id,
+    CONCEPT_VOCAB_VERSION = vocabulary_version
+  ) %>%
+  distinct()
+
+# Step 3: Create the condition_ancestors table
+
+condition_ancestors <- concept_ancestor %>%
+  filter(descendant_concept_id %in% condition_concepts$CONCEPT_ID) %>%
+  inner_join(concept, by = c("ancestor_concept_id" = "concept_id")) %>%
+  inner_join(vocabulary, by = c("vocabulary_id" = "vocabulary_id")) %>%
+  filter(concept_name != "No matching concept", !is.na(concept_id), domain_id == "Condition") %>%
+  group_by(descendant_concept_id) %>%
+  summarise(
+    ANCESTOR_CONCEPT_ID = paste(unique(concept_id), collapse = " | "),
+    ANCESTOR_SOURCE_CODE = paste(unique(concept_code), collapse = " | "),
+    ANCESTOR_LABEL = paste(unique(concept_name), collapse = " | "),
+    ANCESTOR_VOCAB = paste(unique(vocabulary_id), collapse = " | "),
+    ANCESTOR_VOCAB_VERSION = paste(unique(vocabulary_version), collapse = " | ")
+  ) %>%
+  rename(CONCEPT_ID = descendant_concept_id)
+
+# Step 4: Create the condition_synonyms table
+
+condition_synonyms <- concept_synonym %>%
+  filter(concept_id %in% condition_concepts$CONCEPT_ID) %>%
+  group_by(concept_id) %>%
+  summarise(CONCEPT_SYNONYM = paste(unique(concept_synonym_name), collapse = " | ")) %>%
+  rename(CONCEPT_ID = concept_id)
+
+# Step 5: Full joins between the tables
+
+final_result <- condition_concepts %>%
+  full_join(condition_ancestors, by = "CONCEPT_ID") %>%
+  full_join(condition_synonyms, by = "CONCEPT_ID")
+
+# View the final result
+head(final_result)
+
+# Rename
+condition_table_df=final_result
+
+# output from UFRC
+save(condition_table_df, file = "/blue/djlemas/share/data/Benchmark/OMOP/data_ready/condition_table_df.RData")
+  
+```
+

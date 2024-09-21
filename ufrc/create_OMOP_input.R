@@ -1,5 +1,3 @@
-```{r}
-
 # load libraries
 
 library(readr)
@@ -7,54 +5,16 @@ library(dplyr)
 library(readr)
 
 # notes: https://ohdsi.github.io/CommonDataModel/cdm60.html#VOCABULARY
+# notes: https://github.com/callahantiff/OMOP2OBO/tree/master/resources/clinical_data
 
-```
-
-```{r}
+# data location: /blue/djlemas/share/data/Benchmark/OMOP/data_release/
 
 # Step 1: Load the flat files
 
-# condition_occurrence <- read_csv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/condition_occurrence_v2.1.txt", show_col_types = FALSE) 
-# 
-# concept <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_v2.0.txt", show_col_types = FALSE) 
-# 
-# vocabulary <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/vocabulary_v2.0.txt", show_col_types = FALSE) 
-# 
-# concept_ancestor <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE) %>% rename(concept_id=ancestor_concept_id)
-#   
-# concept_synonym <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE) 
-
-```
-
-```{r}
-
-# created params.R script that contains code below. Run as source from R CLI. 
-
 source("/blue/djlemas/share/data/Benchmark/OMOP/data_release/ufrc/utils/params.R")
 
-# library(readr)
-# library(tidyverse)
-# library(stringr)
-# 
-# # data location: /blue/djlemas/share/data/Benchmark/OMOP/data_release/
-# 
-# # notes: https://ohdsi.github.io/CommonDataModel/cdm60.html#VOCABULARY
-# 
-# import data
-#------------
-
-# condition_occurrence <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release//condition_occurrence_v2.1.txt", show_col_types = FALSE) 
-# concept <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_v2.0.txt", show_col_types = FALSE) 
-# vocabulary <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/vocabulary_v2.0.txt", show_col_types = FALSE) 
-# concept_ancestor <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE) %>% rename(concept_id=ancestor_concept_id)
-# concept_synonym <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE) 
-
-```
-
-
-
-```{r}
 # Step 2: Create the condition_concepts table
+
 condition_concepts <- condition_occurrence %>%
   inner_join(concept, by = c("condition_concept_id" = "concept_id")) %>%
   inner_join(vocabulary, by = c("vocabulary_id" = "vocabulary_id")) %>%
@@ -69,6 +29,7 @@ condition_concepts <- condition_occurrence %>%
   distinct()
 
 # Step 3: Create the condition_ancestors table
+
 condition_ancestors <- concept_ancestor %>%
   filter(descendant_concept_id %in% condition_concepts$CONCEPT_ID) %>%
   inner_join(concept, by = c("ancestor_concept_id" = "concept_id")) %>%
@@ -85,6 +46,7 @@ condition_ancestors <- concept_ancestor %>%
   rename(CONCEPT_ID = descendant_concept_id)
 
 # Step 4: Create the condition_synonyms table
+
 condition_synonyms <- concept_synonym %>%
   filter(concept_id %in% condition_concepts$CONCEPT_ID) %>%
   group_by(concept_id) %>%
@@ -92,14 +54,19 @@ condition_synonyms <- concept_synonym %>%
   rename(CONCEPT_ID = concept_id)
 
 # Step 5: Full joins between the tables
+
 final_result <- condition_concepts %>%
   full_join(condition_ancestors, by = "CONCEPT_ID") %>%
   full_join(condition_synonyms, by = "CONCEPT_ID")
 
 # View the final result
-print(final_result)
+head(final_result)
 
-# need to test on super computer
+# Rename
+condition_table_df=final_result
 
-```
+# output from UFRC
+save(condition_table_df, file = "/blue/djlemas/share/data/Benchmark/OMOP/data_ready/condition_table_df.RData")
+  
+
 
