@@ -1,0 +1,108 @@
+```{r}
+
+# load libraries
+
+library(readr)
+library(dplyr)
+library(readr)
+
+# notes: https://ohdsi.github.io/CommonDataModel/cdm60.html#VOCABULARY
+
+```
+
+```{r}
+
+# Step 1: Load the flat files
+
+condition_occurrence <- read_csv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/condition_occurrence_v2.1.txt", show_col_types = FALSE) 
+
+concept <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_v2.0.txt", show_col_types = FALSE) 
+
+vocabulary <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/vocabulary_v2.0.txt", show_col_types = FALSE) 
+
+concept_ancestor <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE) %>% rename(concept_id=ancestor_concept_id)
+  
+concept_synonym <- read_tsv(file="V:/FACULTY/DJLEMAS/BENCHMARK_DATA/OMOP2OBO/cancer/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE) 
+
+```
+
+```{r}
+
+# created params.R script that contains code below. Run as source from R CLI. 
+
+source("/blue/djlemas/share/data/Benchmark/OMOP/data_release/ufrc/utils/params.R")
+
+# library(readr)
+# library(tidyverse)
+# library(stringr)
+# 
+# # data location: /blue/djlemas/share/data/Benchmark/OMOP/data_release/
+# 
+# # notes: https://ohdsi.github.io/CommonDataModel/cdm60.html#VOCABULARY
+# 
+# #Read in data as separate data frames
+# 
+# concept <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_v2.0.txt", show_col_types = FALSE)
+# 
+# # concept <- read_csv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_test.csv", show_col_types = FALSE)
+# 
+# vocabulary <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/vocabulary_v2.0.txt", show_col_types = FALSE)
+# concept_ancestor <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_ancestor_v2.0.txt", show_col_types = FALSE) %>% rename(concept_id=ancestor_concept_id)
+# 
+# concept_synonym <- read_tsv(file="/blue/djlemas/share/data/Benchmark/OMOP/data_release/concept_synonym_v2.0.txt", show_col_types = FALSE)
+                           
+
+```
+
+
+
+```{r}
+# Step 2: Create the condition_concepts table
+condition_concepts <- condition_occurrence %>%
+  inner_join(concept, by = c("condition_concept_id" = "concept_id")) %>%
+  inner_join(vocabulary, by = c("vocabulary_id" = "vocabulary_id")) %>%
+  filter(concept_name != "No matching concept", domain_id == "Condition") %>%
+  select(
+    CONCEPT_ID = condition_concept_id,
+    CONCEPT_SOURCE_CODE = concept_code,
+    CONCEPT_LABEL = concept_name,
+    CONCEPT_VOCAB = vocabulary_id,
+    CONCEPT_VOCAB_VERSION = vocabulary_version
+  ) %>%
+  distinct()
+
+# Step 3: Create the condition_ancestors table
+condition_ancestors <- concept_ancestor %>%
+  filter(descendant_concept_id %in% condition_concepts$CONCEPT_ID) %>%
+  inner_join(concept, by = c("ancestor_concept_id" = "concept_id")) %>%
+  inner_join(vocabulary, by = c("vocabulary_id" = "vocabulary_id")) %>%
+  filter(concept_name != "No matching concept", !is.na(concept_id), domain_id == "Condition") %>%
+  group_by(descendant_concept_id) %>%
+  summarise(
+    ANCESTOR_CONCEPT_ID = paste(unique(concept_id), collapse = " | "),
+    ANCESTOR_SOURCE_CODE = paste(unique(concept_code), collapse = " | "),
+    ANCESTOR_LABEL = paste(unique(concept_name), collapse = " | "),
+    ANCESTOR_VOCAB = paste(unique(vocabulary_id), collapse = " | "),
+    ANCESTOR_VOCAB_VERSION = paste(unique(vocabulary_version), collapse = " | ")
+  ) %>%
+  rename(CONCEPT_ID = descendant_concept_id)
+
+# Step 4: Create the condition_synonyms table
+condition_synonyms <- concept_synonym %>%
+  filter(concept_id %in% condition_concepts$CONCEPT_ID) %>%
+  group_by(concept_id) %>%
+  summarise(CONCEPT_SYNONYM = paste(unique(concept_synonym_name), collapse = " | ")) %>%
+  rename(CONCEPT_ID = concept_id)
+
+# Step 5: Full joins between the tables
+final_result <- condition_concepts %>%
+  full_join(condition_ancestors, by = "CONCEPT_ID") %>%
+  full_join(condition_synonyms, by = "CONCEPT_ID")
+
+# View the final result
+print(final_result)
+
+# need to test on super computer
+
+```
+
